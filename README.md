@@ -127,15 +127,42 @@ pio device monitor
 
 ### 4. Setup Micro-ROS Agent
 
-On your host computer, run the Micro-ROS agent:
 
+You can start the Micro-ROS agent using Docker or from source. For convenience, this project provides a startup script:
+
+### 5. Start Micro-ROS Agent with Script (Docker)
+
+Use the provided script `script/start_micro_ros_agent.sh` to quickly launch the Micro-ROS agent in Docker.
+
+#### Steps
+1. Make sure Docker is installed on your system.
+2. Set the ROS_DISTRO environment variable (e.g. `humble`, `galactic`, etc.):
+   ```bash
+   export ROS_DISTRO=humble
+   ```
+3. Run the startup script:
+   ```bash
+   bash script/start_micro_ros_agent.sh
+   ```
+
+#### Script Content
 ```bash
-# Docker method
-docker run -it --rm -p 8888:8888/udp microros/micro-ros-agent:galactic udp4 --port 8888
+#!/bin/bash
 
-# Or build from source
-ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888
+docker run -it --rm \
+  -v /dev:/dev \
+  -v /dev/shm:/dev/shm \
+  --net=host \
+  microros/micro-ros-agent:$ROS_DISTRO udp4 --port 8888 -v6
 ```
+
+This will start the Micro-ROS agent and listen for UDP connections on port 8888.
+
+**Notes:**
+- Make sure the ESP32 firmware is configured with the correct agent IP and port.
+- To change the port, edit the `--port` parameter in the script.
+- If you encounter permission issues, check `/dev` permissions or run the script as root.
+- For serial or other transport options, refer to the official Micro-ROS agent documentation.
 
 ## 📡 ROS2 Interface
 
