@@ -148,12 +148,10 @@ Use the provided script `script/start_micro_ros_agent.sh` to quickly launch the 
 #### Script Content
 ```bash
 #!/bin/bash
-
 docker run -it --rm \
-  -v /dev:/dev \
-  -v /dev/shm:/dev/shm \
-  --net=host \
-  microros/micro-ros-agent:$ROS_DISTRO udp4 --port 8888 -v6
+  -p 8888:8888/udp \
+  microros/micro-ros-agent:$ROS_DISTRO \
+  udp4 --port 8888 -v4
 ```
 
 This will start the Micro-ROS agent and listen for UDP connections on port 8888.
@@ -163,6 +161,21 @@ This will start the Micro-ROS agent and listen for UDP connections on port 8888.
 - To change the port, edit the `--port` parameter in the script.
 - If you encounter permission issues, check `/dev` permissions or run the script as root.
 - For serial or other transport options, refer to the official Micro-ROS agent documentation.
+
+### 6. Run Crane Control UI (crane_tui)
+
+本專案提供 `script/run_crane_tui.sh` 啟動 Python 文字介面（TUI）進行吊臂/機械臂控制。
+
+#### 啟動方式
+```bash
+bash script/run_crane_tui.sh
+```
+或直接執行 Python 腳本：
+```bash
+python3 script/crane_tui.py
+```
+
+此介面可用於本地端測試、模擬或與 micro-ROS agent 互動。
 
 ## 📡 ROS2 Interface
 
