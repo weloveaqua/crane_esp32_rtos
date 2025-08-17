@@ -7,8 +7,7 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-#include <std_msgs/msg/int32.h>
-#include <std_msgs/msg/int16_multi_array.h>
+#include <std_msgs/msg/int32_multi_array.h>
 #include <trajectory_msgs/msg/joint_trajectory_point.h>
 #include <armDriver.hpp>
 #include <params.hpp>
@@ -42,8 +41,7 @@ rcl_subscription_t subscriber_crane;
 // Message variables
 trajectory_msgs__msg__JointTrajectoryPoint joint_angles;
 float joint_angles_data[NUM_OF_SERVOS] = {90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0};
-std_msgs__msg__Int32 crane_control_msg;
-int32_t crane_control_data[NUM_OF_CRANE_MOTOR] = {0, 0};
+std_msgs__msg__Int32MultiArray crane_control_msg;
 
 // Crane control variables
 float CraneState[NUM_OF_CRANE_MOTOR] = {0.0, 0.0};
@@ -51,6 +49,7 @@ float CraneState[NUM_OF_CRANE_MOTOR] = {0.0, 0.0};
 // State variables
 bool micro_ros_init_successful = false;
 const char* jointAnglesTopic = "joint_angles";
+const char* craneTopic = "crane_control";
 states state;
 
 // ========================================
@@ -77,17 +76,18 @@ void subscription_arm_callback(const void* msgin)
   
   for (int i = 0; i < NUM_OF_SERVOS; i++) {
     joint_angles_data[i] = msg->positions.data[i];
+    Serial.printf("Joint Angle[%d]: %f\n", i, joint_angles_data[i]);
   }
 }
 
 void subscription_crane_callback(const void* msgin)
 {
-  const std_msgs__msg__Int32* msg = (const std_msgs__msg__Int32*)msgin;
-  
+  const std_msgs__msg__Int32MultiArray* msg = (const std_msgs__msg__Int32MultiArray*)msgin;
   // Update crane control data based on received message
-  // Assuming the message data represents motor states
-  for (int i = 0; i < NUM_OF_CRANE_MOTOR; i++) {
-    CraneState[i] = msg->data; // You may need to modify this based on your message structure
+  // Serial.println("Received crane control data:");
+  for (int i = 0; i < NUM_OF_CRANE_MOTOR && i < msg->data.size; i++) {
+    CraneState[i] = msg->data.data[i];
+    Serial.printf("Crane State[%d]: %f\n", i, CraneState[i]);
   }
 }
 
@@ -129,8 +129,8 @@ bool create_entities()
   RCCHECK(rclc_subscription_init_default(
     &subscriber_crane,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-    "crane_control"));
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+    craneTopic));
 
   // Add subscription to executor
   RCCHECK(rclc_executor_add_subscription(
@@ -145,10 +145,20 @@ bool create_entities()
   joint_angles.positions.size = NUM_OF_SERVOS;
   joint_angles.positions.capacity = NUM_OF_SERVOS;
 
+  // Allocate memory for crane_control_msg
+  crane_control_msg.data.data = (int32_t*)malloc(NUM_OF_CRANE_MOTOR * sizeof(int32_t));
+  crane_control_msg.data.size = NUM_OF_CRANE_MOTOR;
+  crane_control_msg.data.capacity = NUM_OF_CRANE_MOTOR;
+
   // Check if memory allocation was successful
   if (joint_angles.positions.data == NULL)
   {
     Serial.println("Failed to allocate memory for joint angles.");
+    return false;
+  }
+  if (crane_control_msg.data.data == NULL)
+  {
+    Serial.println("Failed to allocate memory for crane control message.");
     return false;
   }
 
@@ -352,6 +362,7 @@ void DC_motor_execute(int state) {
         default:
             break;
     }
+    vTaskDelay(UPDATE_ARM_DELAY / portTICK_PERIOD_MS);
 }
 
 void Stepper_motor_execute(int state) {

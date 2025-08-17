@@ -27,7 +27,7 @@
 // ========================================
 // System Timing Constants
 // ========================================
-#define UPDATE_ARM_DELAY 0.01           // Arm update delay in seconds
+#define UPDATE_ARM_DELAY 100           // Arm update delay in seconds
 #define UPDATE_STEPPER_DELAY 50.0       // Stepper motor delay in microseconds
 
 // ========================================
