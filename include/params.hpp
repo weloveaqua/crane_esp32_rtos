@@ -24,11 +24,15 @@
 #define PIN_DIR 26     // Stepper motor direction pin
 #define PIN_ENA 25     // Stepper motor enable pin
 
+#define LEDC_CH   0         // select channel 0
+#define LEDC_RES  8         // 8-bit resolution
+#define LEDC_DUTY 128       // 50% duty 
+
 // ========================================
 // System Timing Constants
 // ========================================
-#define UPDATE_ARM_DELAY 100           // Arm update delay in seconds
-#define UPDATE_STEPPER_DELAY 50.0       // Stepper motor delay in microseconds
+#define UPDATE_ARM_DELAY 100           // Arm update delay in microseconds
+#define UPDATE_STEPPER_DELAY 50       // Stepper motor delay in microseconds
 
 // ========================================
 // Robotic Arm Configuration
@@ -40,7 +44,7 @@ const float ARM_MOVEMENT_STEP = 1.0;    // Movement step size in degrees
 // Joint Angle Limits (in degrees)
 const uint8_t jointMinAngles[NUM_OF_SERVOS] = {0, 0, 0, 0, 0, 0, 0};
 const uint8_t jointMaxAngles[NUM_OF_SERVOS] = {180, 180, 180, 180, 180, 180, 180};
-const uint8_t jointInitAngles[NUM_OF_SERVOS] = {90, 90, 90, 90, 90, 90, 90};
+const uint8_t jointInitAngles[NUM_OF_SERVOS] = {90, 135, 90, 90, 90, 90, 90};
 
 // ========================================
 // Crane Control Configuration
@@ -65,12 +69,12 @@ enum states {
 // ========================================
 // WiFi Credentials
 // TODO: Replace with your actual WiFi credentials
-#define WIFI_SSID "your_wifi_ssid"
-#define WIFI_PASSWORD "your_wifi_password"
+#define WIFI_SSID "screamlab"
+#define WIFI_PASSWORD "s741852scream"
 
 // Micro-ROS Agent Configuration
 // TODO: Replace with your actual agent IP address
-const IPAddress AGENT_IP(192, 168, 1, 100);
+const IPAddress AGENT_IP(192, 168, 0, 180);
 const uint16_t AGENT_PORT = 8888;
 
 // Legacy definitions for backward compatibility

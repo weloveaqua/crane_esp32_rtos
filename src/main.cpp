@@ -40,11 +40,14 @@ rcl_subscription_t subscriber_crane;
 
 // Message variables
 trajectory_msgs__msg__JointTrajectoryPoint joint_angles;
-float joint_angles_data[NUM_OF_SERVOS] = {90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0};
+float joint_angles_data[NUM_OF_SERVOS];
 std_msgs__msg__Int32MultiArray crane_control_msg;
 
 // Crane control variables
 float CraneState[NUM_OF_CRANE_MOTOR] = {0.0, 0.0};
+
+// Stepper / Crane Motor Runtime Params
+volatile uint32_t stepper_motor_speed_hz = 800;
 
 // State variables
 bool micro_ros_init_successful = false;
@@ -258,7 +261,7 @@ void craneControlTaskFunction(void *parameter) {
         }
 
         // Wait for some time before the next iteration
-        vTaskDelay(UPDATE_ARM_DELAY / portTICK_PERIOD_MS);
+        vTaskDelay(UPDATE_STEPPER_DELAY / portTICK_PERIOD_MS);
     }
 }
 
@@ -277,6 +280,11 @@ void setup() {
   // Initialize hardware
   pinMode(LED_PIN, OUTPUT);
   motor_init();
+
+  // Initialize joint angles
+  for (size_t i = 0; i < NUM_OF_SERVOS; ++i) {
+    joint_angles_data[i] = (float)jointInitAngles[i];
+  }
 
   // Set initial state
   state = WAITING_AGENT;
@@ -336,6 +344,10 @@ void motor_init() {
     pinMode(PIN_DIR, OUTPUT);
     pinMode(PIN_ENA, OUTPUT);
 
+    ledcSetup(LEDC_CH, 200, LEDC_RES); // default freq = 200 hz
+    ledcAttachPin(PIN_PULSE, LEDC_CH);
+    ledcWrite(LEDC_CH, 0);             // duty = 0 so that no pulse will be sent
+
     for (uint8_t i = 0; i < NUM_OF_CRANE_MOTOR; i++) {
         CraneState[i] = 0;
     }
@@ -365,32 +377,12 @@ void DC_motor_execute(int state) {
     vTaskDelay(UPDATE_ARM_DELAY / portTICK_PERIOD_MS);
 }
 
-void Stepper_motor_execute(int state) {
+void Stepper_motor_execute(int stepper_motor_dir) {
     // Execute the motor state
-    switch (state) {
-        case 0:
-            // Stop the motor
-            digitalWrite(PIN_ENA, HIGH);
-            break;
-        case 1:
-            // Move the motor forward            
-            digitalWrite(PIN_ENA, LOW);
-            digitalWrite(PIN_DIR, HIGH);
-            digitalWrite(PIN_PULSE, HIGH);
-            delayMicroseconds(UPDATE_STEPPER_DELAY);
-            digitalWrite(PIN_PULSE, LOW);
-            delayMicroseconds(UPDATE_STEPPER_DELAY);         
-            break;
-        case -1:
-            // Move the motor backward
-            digitalWrite(PIN_ENA, LOW);
-            digitalWrite(PIN_DIR, LOW);
-            digitalWrite(PIN_PULSE, HIGH);
-            delayMicroseconds(UPDATE_STEPPER_DELAY);            
-            digitalWrite(PIN_PULSE, LOW);
-            delayMicroseconds(UPDATE_STEPPER_DELAY);            
-            break;
-        default:
-            break;
-    }
+    if(stepper_motor_dir == 0) { ledcWrite(LEDC_CH, 0); return; }
+    digitalWrite(PIN_ENA, LOW);
+    digitalWrite(PIN_DIR, (stepper_motor_dir > 0) ? HIGH : LOW);
+    delayMicroseconds(5);
+    ledcWrite(LEDC_CH, LEDC_DUTY);
+    ledcWriteTone(LEDC_CH, stepper_motor_speed_hz);
 }
